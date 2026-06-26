@@ -1,26 +1,92 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-manrope);
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-card: var(--surface);
+  --color-popover: var(--surface);
+  --color-input: var(--surface);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--surface);
+  --color-sidebar-foreground: var(--foreground);
+  --color-sidebar-primary: var(--primary);
+  --color-sidebar-primary-foreground: var(--surface);
+  --color-sidebar-accent: var(--muted);
+  --color-sidebar-accent-foreground: var(--foreground);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --background: oklch(0.985 0.004 95);
+  --surface: oklch(1 0 0);
+  --foreground: oklch(0.21 0.01 285);
+  --muted: oklch(0.97 0.01 285);
+  --border: oklch(0.92 0.01 285);
+  --primary: oklch(0.25 0.03 285);
+  --secondary: oklch(0.96 0.01 285);
+  --success: oklch(0.72 0.16 145);
+  --warning: oklch(0.82 0.14 84);
+  --danger: oklch(0.62 0.21 25);
+  --ring: oklch(0.7 0.02 285);
+  --radius: 0.625rem;
+  --input: var(--border);
+}
+
+.dark {
+  --background: oklch(0.14 0.01 285);
+  --surface: oklch(0.19 0.01 285);
+  --foreground: oklch(0.98 0 0);
+  --muted: oklch(0.23 0.01 285);
+  --border: oklch(1 0 0 / 10%);
+  --primary: oklch(0.97 0 0);
+  --secondary: oklch(0.24 0.01 285);
+  --success: oklch(0.76 0.15 145);
+  --warning: oklch(0.85 0.14 84);
+  --danger: oklch(0.7 0.2 25);
+  --ring: oklch(0.62 0.02 285);
+  --input: var(--border);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-inter), sans-serif;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-manrope), sans-serif;
+    letter-spacing: -0.03em;
+  }
 }
