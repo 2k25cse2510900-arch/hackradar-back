@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { RegisterForm } from "@/components/auth/register-form";
@@ -18,7 +19,9 @@ export default function RegisterPage() {
         </Link>
       }
     >
-      <RegisterForm />
+      <Suspense>
+        <RegisterForm />
+      </Suspense>
     </AuthLayout>
   );
 }

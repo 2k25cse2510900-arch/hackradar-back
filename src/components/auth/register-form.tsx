@@ -3,18 +3,21 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { GitBranch, Loader2, Mail, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Loader2, Mail, Eye, EyeOff } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { useTheme } from "next-themes";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Divider } from "./divider";
 import { Logo } from "@/components/layout/logo";
-import { cn } from "@/lib/utils";
+import { getGoogleAuthUrl } from "@/lib/api";
+import { useAuth } from "@/providers";
 
 const registerSchema = z
   .object({
@@ -25,6 +28,7 @@ const registerSchema = z
       .min(3, "Username must be at least 3 characters")
       .regex(/^[a-zA-Z0-9._]+$/, "Username can only contain letters, numbers, dots and underscores"),
     email: z.string().email("Enter a valid email address"),
+    phoneNumber: z.string().min(1, "Phone number is required"),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters")
@@ -77,10 +81,23 @@ function AuthField({
 function SocialButton({
   icon,
   label,
+  href,
 }: {
   icon: ReactNode;
   label: string;
+  href?: string;
 }) {
+  if (href) {
+    return (
+      <Button variant="outline" type="button" asChild className="h-11 w-full justify-center gap-3 px-4">
+        <a href={href}>
+          {icon}
+          {label}
+        </a>
+      </Button>
+    );
+  }
+
   return (
     <Button variant="outline" type="button" className="h-11 w-full justify-center gap-3 px-4">
       {icon}
@@ -93,12 +110,14 @@ function PasswordField({
   label,
   value,
   error,
+  helperText,
   onChange,
   autoComplete,
 }: {
   label: string;
   value: string;
   error?: string;
+  helperText?: string;
   onChange: (value: string) => void;
   autoComplete?: string;
 }) {
@@ -125,44 +144,19 @@ function PasswordField({
           {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </button>
       </div>
+      {helperText ? <p className="text-xs text-muted-foreground">{helperText}</p> : null}
     </AuthField>
   );
 }
 
-function RequirementItem({
-  label,
-  met,
-}: {
-  label: string;
-  met: boolean;
-}) {
-  return (
-    <li
-      className={cn(
-        "flex items-center gap-2 text-xs font-medium transition-colors",
-        met ? "text-success" : "text-muted-foreground"
-      )}
-    >
-      <CheckCircle2 className={cn("size-4 shrink-0", met ? "text-success" : "text-muted-foreground")} />
-      <span>{label}</span>
-    </li>
-  );
-}
-
-function getPasswordRules(password: string) {
-  return {
-    minLength: password.length >= 8,
-    upper: /[A-Z]/.test(password),
-    lower: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
-  };
-}
-
 export function RegisterForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { signUp } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const [debouncedUsername, setDebouncedUsername] = useState("");
+  const nextPath = searchParams.get("next");
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -172,6 +166,7 @@ export function RegisterForm() {
       lastName: "",
       username: "",
       email: "",
+      phoneNumber: "",
       password: "",
       confirmPassword: "",
       terms: false,
@@ -181,7 +176,6 @@ export function RegisterForm() {
   const passwordValue = useWatch({ control: form.control, name: "password" }) ?? "";
   const confirmPassword = useWatch({ control: form.control, name: "confirmPassword" }) ?? "";
   const usernameValue = useWatch({ control: form.control, name: "username" }) ?? "";
-  const passwordRules = getPasswordRules(passwordValue);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -199,46 +193,47 @@ export function RegisterForm() {
         ? "unavailable"
         : "available";
 
-  const onSubmit = form.handleSubmit(async () => {
-    // Future-ready placeholder: connect Email Verification / OTP / OAuth flows here.
-    await new Promise((resolve) => window.setTimeout(resolve, 900));
+  const onSubmit = form.handleSubmit(async (values) => {
+    try {
+      await signUp({
+        firstName: values.firstName,
+        lastName: values.lastName,
+        username: values.username,
+        email: values.email,
+        phoneNumber: values.phoneNumber,
+        password: values.password,
+      });
+      toast.success("Account created successfully");
+      router.push("/");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Registration failed. Please try again.");
+    }
   });
 
   const isFormValid =
     form.formState.isValid &&
     usernameState !== "checking" &&
     usernameState !== "unavailable" &&
-    Object.values(passwordRules).every(Boolean) &&
     passwordValue === confirmPassword;
 
   return (
-    <Card className="w-full border-border/70 bg-surface/95 p-5 shadow-[0_16px_50px_rgba(0,0,0,0.08)] backdrop-blur-sm sm:p-6 lg:p-8">
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <Link href="/" className="inline-flex w-fit">
-            <Logo isDark={isDark} />
-          </Link>
-          <div className="space-y-2">
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              WELCOME TO HACKRADAR
-            </p>
+    <Card className="w-full border-border/60 bg-surface/85 p-4 shadow-[0_24px_70px_rgba(31,25,48,0.12)] backdrop-blur-xl sm:p-5 lg:p-6 dark:bg-slate-950/35">
+      <div className="space-y-4 sm:space-y-5">
+        <div className="space-y-3">
+          <Logo isDark={isDark} />
+          <div className="space-y-1.5">
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">Create your account</h1>
-            <p className="max-w-md text-sm leading-6 text-muted-foreground">
-              Start discovering hackathons, competitions, internships and innovation challenges
-              personalized for you.
-            </p>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <SocialButton icon={<Mail className="size-4" />} label="Continue with Google" />
-          <SocialButton icon={<GitBranch className="size-4" />} label="Continue with GitHub" />
+        <div className="flex justify-center">
+          <SocialButton icon={<Mail className="size-4" />} label="Continue with Google" href={getGoogleAuthUrl(nextPath)} />
         </div>
 
         <Divider />
 
-        <form className="space-y-4" aria-label="Create account form" onSubmit={onSubmit}>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <form className="space-y-3.5" aria-label="Create account form" onSubmit={onSubmit}>
+          <div className="grid gap-3 sm:grid-cols-2">
             <AuthField
               label="First Name"
               required
@@ -280,10 +275,24 @@ export function RegisterForm() {
             <Input {...form.register("email")} type="email" autoComplete="email" placeholder="you@example.com" />
           </AuthField>
 
+          <AuthField
+            label="Phone Number"
+            required
+            error={form.formState.errors.phoneNumber?.message}
+          >
+            <Input
+              {...form.register("phoneNumber")}
+              type="tel"
+              autoComplete="tel"
+              placeholder="+91 XXXXX XXXXX"
+            />
+          </AuthField>
+
           <PasswordField
             label="Password"
             value={passwordValue}
             error={form.formState.errors.password?.message}
+            helperText="Password must contain at least 8 characters, including an uppercase letter, lowercase letter, number, and special character."
             onChange={(value) => form.setValue("password", value, { shouldValidate: true, shouldDirty: true })}
             autoComplete="new-password"
           />
@@ -298,15 +307,7 @@ export function RegisterForm() {
             autoComplete="new-password"
           />
 
-          <ul className="grid gap-2 rounded-2xl border border-border bg-background p-4">
-            <RequirementItem label="Minimum 8 characters" met={passwordRules.minLength} />
-            <RequirementItem label="One uppercase letter" met={passwordRules.upper} />
-            <RequirementItem label="One lowercase letter" met={passwordRules.lower} />
-            <RequirementItem label="One number" met={passwordRules.number} />
-            <RequirementItem label="One special character" met={passwordRules.special} />
-          </ul>
-
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="flex items-start gap-3 text-sm text-muted-foreground">
               <input
                 {...form.register("terms")}
@@ -335,7 +336,7 @@ export function RegisterForm() {
           <Button
             type="submit"
             size="lg"
-            className="w-full bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] text-white shadow-[0_10px_30px_rgba(37,99,235,0.25)] transition-transform hover:translate-y-[-1px] hover:from-[#1D4ED8] hover:to-[#1E40AF]"
+            className="w-full"
             disabled={!isFormValid || form.formState.isSubmitting}
           >
             {form.formState.isSubmitting ? (
@@ -359,10 +360,12 @@ export function RegisterForm() {
             </Link>
             .
           </p>
-
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-foreground transition-colors hover:text-primary">
+            <Link
+              href={nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login"}
+              className="font-medium text-foreground transition-colors hover:text-primary"
+            >
               Sign In
             </Link>
           </p>

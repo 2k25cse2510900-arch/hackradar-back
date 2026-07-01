@@ -6,97 +6,203 @@ const hackathonService = require("./hackathon.service");
 const logger = require("../utils/logger");
 
 async function listAlerts(userId) {
-  return Alert.find({ user: userId }).sort({ createdAt: -1 });
+  return Alert.find({ user: userId }).sort({
+    createdAt: -1,
+  });
 }
 
 function getAlertTime(hackathon, payload) {
+  // Demo Mode
   if (payload.demoMode) {
     const minutes = Number(payload.demoMinutes || 2);
-    return new Date(Date.now() + minutes * 60 * 1000);
+
+    return new Date(
+      Date.now() + minutes * 60 * 1000
+    );
   }
 
-  const deadline = new Date(hackathon.registrationDeadline || hackathon.deadline);
+  // Production Mode
+  const deadline = new Date(
+    hackathon.registrationDeadline ||
+      hackathon.deadline
+  );
+
   if (Number.isNaN(deadline.getTime())) {
-    throw new ApiError(422, "Hackathon registration deadline is invalid");
+    throw new ApiError(
+      422,
+      "Hackathon registration deadline is invalid"
+    );
   }
 
-  return new Date(deadline.getTime() - 24 * 60 * 60 * 1000);
+  // Default reminder = 24 Hours Before
+
+  return new Date(
+    deadline.getTime() - 24 * 60 * 60 * 1000
+  );
 }
 
-async function sendAlertCreatedEmail(user, alert, alertTime) {
+async function sendAlertCreatedEmail(
+  user,
+  alert,
+  alertTime
+) {
   if (!user?.email) return;
 
-  const fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || "User";
+  const fullName =
+    `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+    "User";
 
-  await sendEmail({
-    to: user.email,
-    subject: "HackRadar Alert Created",
-    html: `
+  try {
+    await sendEmail({
+      to: user.email,
+
+      subject: "🎉 HackRadar Alert Created",
+
+      html: `
       <h2>Hello ${fullName},</h2>
+
       <p>Your HackRadar alert has been created successfully.</p>
+
       <hr>
+
       <h3>Alert Details</h3>
-      <p><strong>Title:</strong> ${alert.title}</p>
-      <p><strong>Frequency:</strong> ${alert.frequency}</p>
-      <p><strong>Status:</strong> ${alert.enabled ? "Enabled" : "Disabled"}</p>
+
+      <p><strong>Hackathon:</strong> ${alert.title}</p>
+
       <p><strong>Reminder Time:</strong> ${alertTime}</p>
+
+      <p><strong>Channels:</strong> ${alert.channels.join(
+        ", "
+      )}</p>
+
+      <p><strong>Frequency:</strong> ${alert.frequency}</p>
+
       <br>
-      <p>We'll notify you before the hackathon registration deadline.</p>
-      <br>
-      <h3>Happy Hacking</h3>
+
+      <p>Happy Hacking 🚀</p>
+
       <p>HackRadar Team</p>
-    `,
-  }).catch((error) => {
-    logger.warn("Alert confirmation email failed:", error.message);
-  });
+      `,
+    });
+
+    logger.info(
+      `Confirmation email sent -> ${user.email}`
+    );
+  } catch (err) {
+    logger.warn(
+      "Confirmation email failed:",
+      err.message
+    );
+  }
 }
 
 async function createAlert(userId, payload) {
-  const hackathon = await hackathonService.getHackathonById(payload.hackathonId);
-  const alertTime = getAlertTime(hackathon, payload);
+  // Verify Hackathon
+
+  const hackathon =
+    await hackathonService.getHackathonById(
+      payload.hackathonId
+    );
+
+  // Generate Alert Time
+
+  const alertTime = getAlertTime(
+    hackathon,
+    payload
+  );
+
+  // Create Alert
 
   const alert = await Alert.create({
     user: userId,
+
     hackathonId: payload.hackathonId,
-    title: payload.title,
-    channels: payload.channels || ["email", "telegram"],
-    frequency: payload.frequency || "once",
+
+    title:
+      payload.title ||
+      hackathon.title,
+
+    channels:
+      payload.channels || [
+        "email",
+        "telegram",
+      ],
+
+    frequency:
+      payload.frequency || "once",
+
     enabled: true,
+
     alertTime,
-    settings: payload.settings || {},
+
+    settings:
+      payload.settings || {},
   });
 
-  const user = await User.findById(userId);
-  await sendAlertCreatedEmail(user, alert, alertTime);
+  // Send Confirmation
+
+  const user = await User.findById(
+    userId
+  );
+
+  await sendAlertCreatedEmail(
+    user,
+    alert,
+    alertTime
+  );
 
   return alert;
 }
 
-async function updateAlert(userId, alertId, payload) {
+async function updateAlert(
+  userId,
+  alertId,
+  payload
+) {
   if (payload.hackathonId) {
-    await hackathonService.getHackathonById(payload.hackathonId);
+    await hackathonService.getHackathonById(
+      payload.hackathonId
+    );
   }
 
-  const alert = await Alert.findOneAndUpdate({ _id: alertId, user: userId }, payload, {
-    new: true,
-    runValidators: true,
-  });
+  const alert =
+    await Alert.findOneAndUpdate(
+      {
+        _id: alertId,
+        user: userId,
+      },
+      payload,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
   if (!alert) {
-    throw new ApiError(404, "Alert not found");
+    throw new ApiError(
+      404,
+      "Alert not found"
+    );
   }
 
   return alert;
 }
 
-async function deleteAlert(userId, alertId) {
-  const alert = await Alert.findOneAndDelete({
-    _id: alertId,
-    user: userId,
-  });
+async function deleteAlert(
+  userId,
+  alertId
+) {
+  const alert =
+    await Alert.findOneAndDelete({
+      _id: alertId,
+      user: userId,
+    });
 
   if (!alert) {
-    throw new ApiError(404, "Alert not found");
+    throw new ApiError(
+      404,
+      "Alert not found"
+    );
   }
 
   return alert;

@@ -2,30 +2,39 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Search, X } from "lucide-react";
+import { Menu, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 type MobileNavProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onOpenHraiPlus: () => void;
   onThemeToggle: () => void;
   toneClassName: string;
+  authenticated?: boolean;
+  userLabel?: string;
+  onLogout?: () => void | Promise<void>;
 };
 
 const links = [
+  { href: "/", label: "Home" },
   { href: "/hrai", label: "HRAI" },
   { href: "/hackathons", label: "Hackathons" },
   { href: "/enrolled", label: "Enrolled" },
   { href: "/alerts", label: "Alerts" },
-  { href: "/about", label: "About" },
+  { href: "/about", label: "About Us" },
 ];
 
 export function MobileNav({
   open,
   onOpenChange,
+  onOpenHraiPlus,
   onThemeToggle,
   toneClassName,
+  authenticated = false,
+  userLabel = "User",
+  onLogout,
 }: MobileNavProps) {
   return (
     <div className="lg:hidden">
@@ -68,6 +77,18 @@ export function MobileNav({
 
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onOpenHraiPlus();
+                  }}
+                >
+                  <Sparkles className="size-4" />
+                  HRAI+
+                </Button>
+                <Button
                   variant="outline"
                   className="justify-start"
                   type="button"
@@ -75,23 +96,30 @@ export function MobileNav({
                 >
                   Toggle theme
                 </Button>
-                <Button variant="outline" className="justify-start" asChild>
-                  <Link href="/search">
-                    <Search className="size-4" />
-                    Search
-                  </Link>
-                </Button>
               </div>
 
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                <Button variant="outline" asChild>
-                  <Link href="/login" onClick={() => onOpenChange(false)}>
-                    Sign In
-                  </Link>
-                </Button>
+                {authenticated ? (
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={async () => {
+                      await onLogout?.();
+                      onOpenChange(false);
+                    }}
+                  >
+                    Sign Out
+                  </Button>
+                ) : (
+                  <Button variant="outline" asChild>
+                    <Link href="/login" onClick={() => onOpenChange(false)}>
+                      Sign In
+                    </Link>
+                  </Button>
+                )}
                 <Button asChild>
                   <Link href="/profile" onClick={() => onOpenChange(false)}>
-                    User
+                    {userLabel}
                   </Link>
                 </Button>
               </div>

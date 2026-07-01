@@ -1,22 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { BookmarkCheck, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Navbar } from "@/components/layout/navbar";
+import { ProtectedPage } from "@/components/auth/protected-page";
+import { Dialog } from "@/components/ui";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HackathonCard } from "./hackathon-card";
+import { HackathonCard, HackathonNotificationsDialog } from "./hackathon-card";
 import { HackathonSearch } from "./hackathon-search";
 import { HackathonFilters } from "./hackathon-filters";
-import { hackathons } from "@/data/hackathons";
-import { defaultHackathonFilters, type HackathonFilters } from "../types";
+import {
+  createBookmark,
+  deleteBookmark,
+  listBookmarks,
+  listHackathons,
+  type Bookmark,
+  type Hackathon,
+} from "@/lib/api";
+import { defaultHackathonFilters, type HackathonFilters as HackathonFiltersState } from "../types";
 import { matchesHackathonFilters } from "../utils";
-import { addHackathon, removeHackathon } from "../storage";
-import { useEnrolledHackathons } from "../hooks";
 
 type HackathonsClientProps = {
   enrolledPage?: boolean;
@@ -25,17 +32,12 @@ type HackathonsClientProps = {
 function PageHeader({
   title,
   subtitle,
-  eyebrow,
 }: {
   title: string;
   subtitle: string;
-  eyebrow: string;
 }) {
   return (
     <div className="max-w-3xl">
-      <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-        {eyebrow}
-      </div>
       <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
         {title}
       </h1>
@@ -80,31 +82,84 @@ function EmptyState() {
 
 export function HackathonsClient({ enrolledPage = false }: HackathonsClientProps) {
   const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState<HackathonFilters>(defaultHackathonFilters);
-  const { trackedIds, trackedHackathons } = useEnrolledHackathons(hackathons);
+  const [filters, setFilters] = useState<HackathonFiltersState>(defaultHackathonFilters);
+  const [notificationHackathon, setNotificationHackathon] = useState<Hackathon | null>(null);
+  const [hackathons, setHackathons] = useState<Hackathon[]>([]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [nextHackathons, nextBookmarks] = await Promise.all([
+          listHackathons(),
+          listBookmarks().catch(() => []),
+        ]);
+
+        if (active) {
+          setHackathons(nextHackathons);
+          setBookmarks(nextBookmarks);
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to load hackathons");
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const trackedIds = useMemo(() => bookmarks.map((bookmark) => bookmark.hackathonId), [bookmarks]);
+  const trackedHackathons = useMemo(
+    () => bookmarks.map((bookmark) => bookmark.hackathon).filter((hackathon): hackathon is Hackathon => Boolean(hackathon)),
+    [bookmarks]
+  );
   const source = enrolledPage ? trackedHackathons : hackathons;
   const filteredHackathons = useMemo(
     () => source.filter((hackathon) => matchesHackathonFilters(hackathon, filters, query)),
     [source, filters, query]
   );
 
-  const handleTrack = (hackathonId: string) => {
-    const result = addHackathon(hackathonId);
-    if (result.status === "duplicate") {
+  const handleTrack = async (hackathonId: string) => {
+    if (trackedIds.includes(hackathonId)) {
       toast("Already Tracking");
       return;
     }
 
-    toast.success("Added to Enrolled");
+    try {
+      const { bookmark } = await createBookmark(hackathonId);
+      const hackathon = hackathons.find((item) => item.id === hackathonId);
+      setBookmarks((current) => [{ ...bookmark, hackathon }, ...current]);
+      toast.success("Added to Enrolled");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to add bookmark");
+    }
   };
 
-  const handleRemove = (hackathonId: string) => {
-    removeHackathon(hackathonId);
-    toast.success("Tracking Removed");
+  const handleRemove = async (hackathonId: string) => {
+    const bookmark = bookmarks.find((item) => item.hackathonId === hackathonId);
+    if (!bookmark) return;
+
+    try {
+      await deleteBookmark(bookmark._id);
+      setBookmarks((current) => current.filter((item) => item._id !== bookmark._id));
+      toast.success("Tracking Removed");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to remove bookmark");
+    }
   };
 
-  return (
+  const page = (
     <div className="min-h-screen bg-background">
       <Navbar />
 
@@ -113,13 +168,11 @@ export function HackathonsClient({ enrolledPage = false }: HackathonsClientProps
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             {enrolledPage ? (
               <PageHeader
-                eyebrow="Enrolled"
                 title="My Enrolled Hackathons"
                 subtitle="Track all your registered and followed hackathons in one place."
               />
             ) : (
               <PageHeader
-                eyebrow="Hackathons"
                 title="Discover Hackathons"
                 subtitle="Find the best hackathons, innovation challenges and coding competitions from around the world."
               />
@@ -132,7 +185,11 @@ export function HackathonsClient({ enrolledPage = false }: HackathonsClientProps
               </div>
             ) : null}
 
-            {filteredHackathons.length > 0 ? (
+            {loading ? (
+              <div className="mt-8 rounded-[1.75rem] border border-border bg-surface px-6 py-10 text-center text-sm text-muted-foreground">
+                Loading hackathons...
+              </div>
+            ) : filteredHackathons.length > 0 ? (
               <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {filteredHackathons.map((hackathon, index) => (
                   <HackathonCard
@@ -144,6 +201,7 @@ export function HackathonsClient({ enrolledPage = false }: HackathonsClientProps
                     showNotifications={enrolledPage}
                     onTrack={(item) => handleTrack(item.id)}
                     onRemove={(item) => handleRemove(item.id)}
+                    onOpenNotifications={(item) => setNotificationHackathon(item)}
                   />
                 ))}
               </div>
@@ -182,6 +240,12 @@ export function HackathonsClient({ enrolledPage = false }: HackathonsClientProps
           </div>
         </section>
       </main>
+
+      <Dialog open={notificationHackathon !== null} onOpenChange={(open) => !open && setNotificationHackathon(null)}>
+        {notificationHackathon ? <HackathonNotificationsDialog hackathon={notificationHackathon} /> : null}
+      </Dialog>
     </div>
   );
+
+  return enrolledPage ? <ProtectedPage>{page}</ProtectedPage> : page;
 }

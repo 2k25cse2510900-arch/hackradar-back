@@ -1,34 +1,45 @@
 "use client";
 
+import Link from "next/link";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, BadgeCheck, CalendarDays, Globe2, Search } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  CalendarDays,
+  CheckCircle2,
+  Globe2,
+  Search,
+  Sparkles,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
-const highlights = ["Hackathons", "Competitions", "Internships", "Innovation"];
+const highlights = ["AI Recommendations", "Deadline Alerts", "Smart Tracking", "Unified Discovery"];
 
 const cards = [
   {
     name: "Google Solution Challenge",
-    status: "Applications open",
-    prize: "$50K+ in rewards",
+    status: "Registration Open",
+    prize: "Global Recognition + Cash Awards",
     mode: "Hybrid",
-    tags: ["AI", "Cloud", "Student"],
+    tags: ["AI", "Google Cloud", "SDGs"],
   },
   {
-    name: "SIH 2026",
-    status: "Upcoming",
-    prize: "National recognition",
-    mode: "In-person",
-    tags: ["GovTech", "Team", "Build"],
+    name: "Smart India Hackathon (SIH)",
+    status: "National Innovation Challenge",
+    prize: "Cash Awards + National Recognition",
+    mode: "Hybrid",
+    tags: ["GovTech", "Innovation", "Team"],
   },
   {
     name: "Microsoft Imagine Cup",
-    status: "Featured",
-    prize: "$100K grand prize",
-    mode: "Remote",
-    tags: ["Startup", "AI", "Global"],
+    status: "Global Student Startup Competition",
+    prize: "USD 100,000 + Mentorship",
+    mode: "Global",
+    tags: ["AI", "Startup", "Microsoft"],
   },
 ];
 
@@ -39,6 +50,50 @@ type HackathonCardProps = {
   mode: string;
   tags: string[];
 };
+
+const whyHackRadar = [
+  {
+    title: "AI Recommendations",
+    description: "Receive personalized hackathon suggestions based on your skills, interests, and experience level.",
+  },
+  {
+    title: "Smart Deadline Alerts",
+    description: "Stay informed with timely reminders for registrations, submissions, presentations, and important event milestones.",
+  },
+  {
+    title: "Event Timelines",
+    description: "Access complete event schedules, including registration deadlines, submission dates, mentoring sessions, and final presentations.",
+  },
+  {
+    title: "Unified Discovery",
+    description: "Explore hackathons from multiple trusted platforms through one centralized and organized experience.",
+  },
+];
+
+const perfectFor = [
+  "College Students",
+  "Developers",
+  "Student Teams",
+  "Innovation Clubs",
+  "Tech Communities",
+];
+
+const currentMvp = [
+  "AI-Powered Recommendations",
+  "Explore Hackathons",
+  "Enrolled Tracking",
+  "Event Timeline",
+  "Smart Notifications",
+  "Alerts Management",
+];
+
+const futureRoadmap = [
+  "Calendar Integration",
+  "One-Click Event Reminders",
+  "Personalized Alert Rules",
+  "AI Priority Scoring",
+  "Cross-Platform Event Sync",
+];
 
 function HackathonCard({
   name,
@@ -92,7 +147,85 @@ function HackathonCard({
   );
 }
 
+function LearnMoreModal() {
+  return (
+    <div className="space-y-6">
+      <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+       Instead of searching across multiple websites, HackRadar brings verified hackathons, event timelines, smart reminders, and personalized recommendations together in one place—making it easier to focus on learning, building, and competing.
+      </p>
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+          <Sparkles className="size-4" />
+          Why HackRadar?
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {whyHackRadar.map((item) => (
+            <Card key={item.title} className="border-border/70 bg-background p-4 shadow-none">
+              <h3 className="text-sm font-semibold tracking-tight text-foreground">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-foreground">Perfect For</h3>
+        <div className="flex flex-wrap gap-2">
+          {perfectFor.map((item) => (
+            <span
+              key={item}
+              className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-foreground">CURRENT FEATURES</h3>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {currentMvp.map((item) => (
+            <div key={item} className="flex items-center gap-2 rounded-2xl border border-border bg-background px-4 py-3">
+              <CheckCircle2 className="size-4 shrink-0 text-success" />
+              <span className="text-sm font-medium text-foreground">{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-foreground">Coming Soon</h3>
+          <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            Coming Soon
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {futureRoadmap.map((item) => (
+            <span
+              key={item}
+              className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="pt-2">
+        <Button asChild size="lg" className="w-full bg-[#2563EB] text-white hover:bg-[#1D4ED8] hover:text-white">
+          <Link href="/hackathons">Explore Hackathons</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function Hero() {
+  const [learnMoreOpen, setLearnMoreOpen] = useState(false);
+
   return (
     <section className="relative isolate overflow-hidden pt-8 sm:pt-12 lg:pt-16">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl items-center gap-20 px-4 pb-20 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:gap-24 lg:px-8 lg:pb-28">
@@ -105,17 +238,17 @@ export function Hero() {
         >
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm text-foreground shadow-sm">
             <span className="text-base">🚀</span>
-            <span className="font-medium">AI Powered Hackathon Discovery Platform</span>
+            <span className="font-medium">AI-Powered Hackathon Discovery Platform</span>
           </div>
 
           <h1 className="mt-12 max-w-xl select-none text-5xl font-semibold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-            Find your next hackathon.
-            <span className="block text-muted-foreground">Faster.</span>
+            One Platform.
+            Every Hackathon.
+            <span className="block text-muted-foreground">Zero Missed Deadlines.</span>
           </h1>
 
           <p className="mt-8 max-w-xl text-lg leading-8 text-muted-foreground sm:text-xl">
-            Discover hackathons, coding competitions, internships and innovation challenges
-            from one modern platform.
+            Discover hackathons, track deadlines, and get AI-powered recommendations - all in one place.
           </p>
 
           <div className="mt-12 flex flex-wrap items-center gap-4">
@@ -129,8 +262,8 @@ export function Hero() {
                 <ArrowRight className="size-4" />
               </a>
             </Button>
-            <Button size="lg" variant="outline" asChild>
-              <a href="#learn-more">Learn More</a>
+            <Button size="lg" variant="outline" type="button" onClick={() => setLearnMoreOpen(true)}>
+              Learn More
             </Button>
           </div>
 
@@ -168,6 +301,39 @@ export function Hero() {
           </div>
         </motion.div>
       </div>
+
+      <Dialog open={learnMoreOpen} onOpenChange={setLearnMoreOpen}>
+        <DialogContent className="p-0">
+          <div className="max-h-[86vh] overflow-y-auto [scrollbar-width:thin]" style={{ scrollbarColor: "var(--border) transparent" }}>
+            <div className="border-b border-border/70 bg-surface px-6 py-6 sm:px-7">
+              <DialogHeader className="pr-10 text-left">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-border bg-background text-primary shadow-sm">
+                    <Sparkles className="size-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <DialogTitle>What is HackRadar?</DialogTitle>
+                    <DialogDescription className="mt-1 font-medium text-foreground">
+                      Never miss a hackathon again.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+            </div>
+
+            <div className="px-6 py-6 sm:px-7">
+              <div className="space-y-6">
+                <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+                  HackRadar is an AI-powered platform that helps students discover, track, and manage hackathons from
+                  multiple platforms in one place.
+                </p>
+
+                <LearnMoreModal />
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

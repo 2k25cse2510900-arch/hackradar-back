@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Navbar } from "@/components/layout/navbar";
+import { ProtectedPage } from "@/components/auth/protected-page";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { createAlert, deleteAlert, listAlerts, listBookmarks, type Alert, type Bookmark } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-const STORAGE_KEY = "hackradar-alert-preferences";
 
 type AlertPreferences = {
   whatsapp: boolean;
@@ -28,20 +29,6 @@ const defaultPreferences: AlertPreferences = {
   email: false,
   reminderTiming: "24",
 };
-
-function loadPreferences() {
-  if (typeof window === "undefined") {
-    return defaultPreferences;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultPreferences;
-    return { ...defaultPreferences, ...JSON.parse(raw) } as AlertPreferences;
-  } catch {
-    return defaultPreferences;
-  }
-}
 
 function ToggleRow({
   title,
@@ -101,7 +88,7 @@ function RadioItem({
       className={cn(
         "rounded-2xl border px-4 py-3 text-left text-sm transition-all",
         active
-          ? "border-primary bg-primary text-background"
+          ? "border-primary-border bg-primary-soft text-primary dark:bg-[rgba(124,58,237,0.18)] dark:text-[#E9D5FF]"
           : "border-border bg-background text-foreground hover:bg-muted"
       )}
     >
@@ -111,14 +98,103 @@ function RadioItem({
 }
 
 export function AlertsPage() {
-  const [preferences, setPreferences] = useState<AlertPreferences>(() => loadPreferences());
+  const [preferences, setPreferences] = useState<AlertPreferences>(defaultPreferences);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const savePreferences = () => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
-    toast.success("Preferences Saved Successfully");
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [nextAlerts, nextBookmarks] = await Promise.all([listAlerts(), listBookmarks()]);
+      setAlerts(nextAlerts);
+      setBookmarks(nextBookmarks);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to load alerts");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+
+    Promise.all([listAlerts(), listBookmarks()])
+      .then(([nextAlerts, nextBookmarks]) => {
+        if (active) {
+          setAlerts(nextAlerts);
+          setBookmarks(nextBookmarks);
+        }
+      })
+      .catch((error) => {
+        toast.error(error instanceof Error ? error.message : "Unable to load alerts");
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const savePreferences = async () => {
+    const channels = [
+      preferences.email ? "email" : null,
+      preferences.telegram ? "telegram" : null,
+      preferences.browser ? "browser" : null,
+      preferences.whatsapp ? "whatsapp" : null,
+      preferences.aiCalls ? "call" : null,
+    ].filter(Boolean) as string[];
+
+    if (channels.length === 0) {
+      toast.error("Select at least one notification channel");
+      return;
+    }
+
+    const alertableBookmarks = bookmarks.filter((bookmark) => bookmark.hackathon?.registrationDeadline);
+    if (alertableBookmarks.length === 0) {
+      toast.error("Track a hackathon with a registration deadline before saving alerts");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await Promise.all(
+        alertableBookmarks.map((bookmark) =>
+          createAlert({
+            hackathonId: bookmark.hackathonId,
+            title: `${bookmark.hackathon?.name || "Hackathon"} reminder`,
+            channels,
+            frequency: "once",
+            settings: preferences,
+          })
+        )
+      );
+      await loadData();
+      toast.success("Preferences Saved Successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save preferences");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeAlert = async (alertId: string) => {
+    try {
+      await deleteAlert(alertId);
+      setAlerts((current) => current.filter((alert) => alert._id !== alertId));
+      toast.success("Alert deleted");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to delete alert");
+    }
   };
 
   return (
+    <ProtectedPage>
     <div className="min-h-screen bg-background">
       <Navbar />
 
@@ -207,9 +283,10 @@ export function AlertsPage() {
                   <Button
                     type="button"
                     onClick={savePreferences}
-                    className="w-full bg-[#2563EB] text-white hover:bg-[#1D4ED8] hover:text-white"
+                    disabled={saving}
+                    className="w-full"
                   >
-                    Save Preferences
+                    {saving ? "Saving..." : "Save Preferences"}
                   </Button>
                 </div>
               </Card>
@@ -217,13 +294,44 @@ export function AlertsPage() {
 
             <div className="mx-auto mt-6 max-w-3xl">
               <div className="rounded-[1.75rem] border border-border bg-muted/40 px-5 py-4 text-sm leading-6 text-muted-foreground">
-                These settings are currently stored locally. Cloud synchronization and personalized
-                notifications will be available in a future update.
+                These settings create reminders for your enrolled hackathons using HackRadar backend alerts.
               </div>
+            </div>
+
+            <div className="mx-auto mt-6 max-w-3xl">
+              <Card className="border-border/70 bg-surface p-6 shadow-[0_10px_30px_rgba(0,0,0,0.04)] sm:p-8">
+                <h2 className="text-lg font-semibold tracking-tight text-foreground">Active Reminders</h2>
+                <div className="mt-5 grid gap-3">
+                  {loading ? (
+                    <p className="text-sm text-muted-foreground">Loading reminders...</p>
+                  ) : alerts.length > 0 ? (
+                    alerts.map((alert) => (
+                      <div
+                        key={alert._id}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background px-4 py-4"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">{alert.title}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {new Date(alert.alertTime).toLocaleString()} · {alert.channels.join(", ")}
+                          </p>
+                        </div>
+                        <Button type="button" variant="outline" size="sm" onClick={() => removeAlert(alert._id)}>
+                          <Trash2 className="size-4" />
+                          Delete
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No active reminders yet.</p>
+                  )}
+                </div>
+              </Card>
             </div>
           </div>
         </section>
       </main>
     </div>
+    </ProtectedPage>
   );
 }

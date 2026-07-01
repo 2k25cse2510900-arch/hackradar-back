@@ -117,8 +117,8 @@ export function HackathonFilters({ filters, onChange }: HackathonFiltersProps) {
                           className={cn(
                             "rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
                             isActive
-                              ? "border-primary bg-primary text-background"
-                              : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                              ? "border-primary-border bg-primary-soft text-primary dark:bg-[rgba(124,58,237,0.18)] dark:text-[#E9D5FF]"
+                              : "border-border bg-surface text-muted-foreground hover:bg-muted hover:text-foreground"
                           )}
                         >
                           {option}
@@ -143,7 +143,7 @@ export function HackathonFilters({ filters, onChange }: HackathonFiltersProps) {
             </Button>
             <Button
               type="button"
-              className="rounded-2xl bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
+              className="rounded-2xl"
               onClick={() => setOpen(false)}
             >
               Apply Filters

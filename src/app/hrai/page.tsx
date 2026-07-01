@@ -6,56 +6,118 @@ import { Bot } from "lucide-react";
 import { toast } from "sonner";
 
 import { Navbar } from "@/components/layout/navbar";
+import { ProtectedPage } from "@/components/auth/protected-page";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { hackathons } from "@/data/hackathons";
 import { HackathonCard } from "@/features/hackathons/components/hackathon-card";
-import { useEnrolledHackathons } from "@/features/hackathons/hooks";
-import { addHackathon, removeHackathon } from "@/features/hackathons/storage";
 import { recommendHackathons } from "@/features/recommendation/recommendationEngine";
-import { defaultUserProfile, getStoredUserProfile } from "@/features/profile/storage";
-import type { UserProfile } from "@/features/profile/storage";
+import {
+  createBookmark,
+  deleteBookmark,
+  getAuthUserDisplayName,
+  getProfile,
+  listBookmarks,
+  listHackathons,
+  type Bookmark,
+  type Hackathon,
+  type UserProfile,
+} from "@/lib/api";
+import { useAuth } from "@/providers";
+
+const emptyProfile: UserProfile = {
+  name: "",
+  college: "",
+  year: "",
+  degree: "",
+  domains: [],
+  skills: [],
+  experienceLevel: "Beginner",
+  goals: [],
+  preferredMode: "Online",
+  availability: "Anytime",
+  phoneNumber: "",
+};
 
 export default function HraiPage() {
-  const [profile, setProfile] = useState<UserProfile>(() => getStoredUserProfile());
-  const { trackedIds } = useEnrolledHackathons(hackathons);
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<UserProfile>(emptyProfile);
+  const [hackathons, setHackathons] = useState<Hackathon[]>([]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const sync = () => setProfile(getStoredUserProfile());
-    window.addEventListener("storage", sync);
-    window.addEventListener("hackradar-profile-updated", sync);
+    let active = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [profileResult, nextHackathons, nextBookmarks] = await Promise.all([
+          getProfile(),
+          listHackathons(),
+          listBookmarks().catch(() => []),
+        ]);
+
+        if (active) {
+          setProfile({ ...emptyProfile, ...profileResult.profile });
+          setHackathons(nextHackathons);
+          setBookmarks(nextBookmarks);
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to load recommendations");
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
     return () => {
-      window.removeEventListener("storage", sync);
-      window.removeEventListener("hackradar-profile-updated", sync);
+      active = false;
     };
   }, []);
 
-  const recommendations = useMemo(() => recommendHackathons(hackathons, profile), [profile]);
+  const recommendations = useMemo(() => recommendHackathons(hackathons, profile), [hackathons, profile]);
+  const trackedIds = useMemo(() => bookmarks.map((bookmark) => bookmark.hackathonId), [bookmarks]);
 
-  const handleTrack = (hackathonId: string) => {
-    const result = addHackathon(hackathonId);
-    if (result.status === "duplicate") {
+  const handleTrack = async (hackathonId: string) => {
+    if (trackedIds.includes(hackathonId)) {
       toast("Already Tracking");
       return;
     }
-    toast.success("Added to Enrolled");
+
+    try {
+      const { bookmark } = await createBookmark(hackathonId);
+      const hackathon = hackathons.find((item) => item.id === hackathonId);
+      setBookmarks((current) => [{ ...bookmark, hackathon }, ...current]);
+      toast.success("Added to Enrolled");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to add bookmark");
+    }
   };
 
-  const handleRemove = (hackathonId: string) => {
-    removeHackathon(hackathonId);
-    toast.success("Tracking Removed");
+  const handleRemove = async (hackathonId: string) => {
+    const bookmark = bookmarks.find((item) => item.hackathonId === hackathonId);
+    if (!bookmark) return;
+
+    try {
+      await deleteBookmark(bookmark._id);
+      setBookmarks((current) => current.filter((item) => item._id !== bookmark._id));
+      toast.success("Tracking Removed");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to remove bookmark");
+    }
   };
 
   return (
+    <ProtectedPage>
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-16">
         <section className="py-14 sm:py-16 lg:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                HRAI
-              </div>
               <h1 className="mt-5 flex items-center gap-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
                 <Bot className="size-8" />
                 HRAI
@@ -67,14 +129,18 @@ export default function HraiPage() {
 
             <Card className="mt-10 border-border/70 bg-surface p-5 shadow-[0_10px_30px_rgba(0,0,0,0.04)] sm:p-6">
               <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                Hello, {profile.name || "Kartik Kumar"}
+                Hello, {profile.name || getAuthUserDisplayName(user) || "User"}
               </h2>
               <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
                 Based on your profile, HRAI has selected these hackathons for you.
               </p>
             </Card>
 
-            {recommendations.length > 0 ? (
+            {loading ? (
+              <div className="mt-10 rounded-[1.75rem] border border-border bg-surface px-6 py-10 text-center text-sm text-muted-foreground">
+                Loading recommendations...
+              </div>
+            ) : recommendations.length > 0 ? (
               <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {recommendations.map((item, index) => (
                   <HackathonCard
@@ -110,5 +176,6 @@ export default function HraiPage() {
         </section>
       </main>
     </div>
+    </ProtectedPage>
   );
 }

@@ -1,10 +1,21 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, ChevronDown, CircleCheckBig, Sparkles } from "lucide-react";
+import {
+  Brain,
+  Check,
+  CircleCheckBig,
+  Clock3,
+  Globe2,
+  Search,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { StatsSection } from "./stats-section";
+import { HackRadarWorkflowGrid } from "./hackradar-workflow-grid";
+import { HackRadarJourneyAccordion } from "./hackradar-journey-accordion";
+import { LandingCta } from "./landing-cta";
+import { WhyDiscoveryMattersPanel } from "./why-discovery-matters-panel";
 
 type SectionShellProps = {
   eyebrow?: string;
@@ -18,26 +29,13 @@ type SectionShellProps = {
 type ProblemCardProps = {
   title: string;
   description: string;
+  icon: ReactNode;
 };
 
 type FeatureCardProps = {
   title: string;
   description: string;
   icon?: ReactNode;
-};
-
-type StepCardProps = {
-  step: string;
-  title: string;
-  description: string;
-};
-
-type ComparisonRowProps = {
-  label: string;
-  hackRadar: boolean | string;
-  devfolio: boolean | string;
-  unstop: boolean | string;
-  hack2skill: boolean | string;
 };
 
 type OpportunityCardProps = {
@@ -47,18 +45,10 @@ type OpportunityCardProps = {
   category: string;
 };
 
-type TimelineItemProps = {
-  phase: string;
-  title: string;
-  description?: string;
-  active?: boolean;
-};
-
 type FooterColumnProps = {
   title: string;
   links: Array<{ label: string; href: string }>;
 };
-
 const opportunityCards = [
   {
     title: "Google Solution Challenge",
@@ -98,60 +88,13 @@ const opportunityCards = [
   },
 ];
 
-const roadmapItems = [
-  { phase: "Phase 1", title: "Hackathons", active: true },
-  { phase: "Phase 2", title: "Internships" },
-  { phase: "Phase 3", title: "Scholarships" },
-  { phase: "Phase 4", title: "Portfolio Builder" },
-  { phase: "Phase 5", title: "Organizer Dashboard" },
-  { phase: "Phase 6", title: "AI Career Coach" },
-];
-
-const comparisonRows = [
-  {
-    label: "Cross-platform discovery",
-    hackRadar: true,
-    devfolio: false,
-    unstop: false,
-    hack2skill: false,
-  },
-  {
-    label: "Unified search",
-    hackRadar: true,
-    devfolio: false,
-    unstop: false,
-    hack2skill: false,
-  },
-  {
-    label: "AI recommendation",
-    hackRadar: true,
-    devfolio: false,
-    unstop: false,
-    hack2skill: false,
-  },
-  {
-    label: "Deadline tracking",
-    hackRadar: true,
-    devfolio: false,
-    unstop: false,
-    hack2skill: false,
-  },
-  {
-    label: "Personalized matching",
-    hackRadar: true,
-    devfolio: false,
-    unstop: false,
-    hack2skill: false,
-  },
-];
-
 const footerColumns = [
   {
     title: "Product",
     links: [
       { label: "Features", href: "#introducing-hackradar" },
       { label: "Hackathons", href: "#featured-opportunities" },
-      { label: "Internships", href: "#roadmap" },
+      { label: "Internships", href: "#featured-opportunities" },
       { label: "Competitions", href: "#featured-opportunities" },
     ],
   },
@@ -176,7 +119,6 @@ const footerColumns = [
 ];
 
 export function SectionShell({
-  eyebrow,
   title,
   subtitle,
   children,
@@ -187,11 +129,6 @@ export function SectionShell({
     <section id={id} className={cn("py-20 sm:py-24 lg:py-28", className)}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
-          {eyebrow ? (
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              {eyebrow}
-            </div>
-          ) : null}
           <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
             {title}
           </h2>
@@ -207,11 +144,11 @@ export function SectionShell({
   );
 }
 
-export function ProblemCard({ title, description }: ProblemCardProps) {
+export function ProblemCard({ title, description, icon }: ProblemCardProps) {
   return (
     <article className="rounded-[1.75rem] border border-border bg-surface p-6 shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
       <div className="mb-6 flex size-11 items-center justify-center rounded-2xl bg-muted text-foreground">
-        <Sparkles className="size-5" />
+        {icon}
       </div>
       <h3 className="text-lg font-semibold tracking-tight text-foreground">{title}</h3>
       <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
@@ -228,53 +165,6 @@ export function FeatureCard({ title, description, icon }: FeatureCardProps) {
       <h3 className="text-lg font-semibold tracking-tight text-foreground">{title}</h3>
       <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
     </article>
-  );
-}
-
-export function StepCard({ step, title, description }: StepCardProps) {
-  return (
-    <article className="rounded-[1.75rem] border border-border bg-surface p-6 shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
-          {step}
-        </span>
-        <div className="flex size-9 items-center justify-center rounded-full bg-muted text-foreground">
-          <ChevronDown className="size-4 -rotate-90" />
-        </div>
-      </div>
-      <h3 className="mt-5 text-lg font-semibold tracking-tight text-foreground">{title}</h3>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
-    </article>
-  );
-}
-
-function TruthCell({ value }: { value: boolean | string }) {
-  if (typeof value === "boolean") {
-    return value ? (
-      <Check className="mx-auto size-4 text-success" />
-    ) : (
-      <span className="mx-auto block size-2.5 rounded-full bg-border" />
-    );
-  }
-
-  return <span className="text-sm text-muted-foreground">{value}</span>;
-}
-
-export function ComparisonRow({
-  label,
-  hackRadar,
-  devfolio,
-  unstop,
-  hack2skill,
-}: ComparisonRowProps) {
-  return (
-    <div className="grid grid-cols-[1.6fr_repeat(4,minmax(0,1fr))] gap-4 border-t border-border px-6 py-5 text-sm">
-      <div className="font-medium text-foreground">{label}</div>
-      <TruthCell value={hackRadar} />
-      <TruthCell value={devfolio} />
-      <TruthCell value={unstop} />
-      <TruthCell value={hack2skill} />
-    </div>
   );
 }
 
@@ -311,30 +201,6 @@ export function OpportunityCard({
   );
 }
 
-export function TimelineItem({ phase, title, description, active }: TimelineItemProps) {
-  return (
-    <div className="flex items-start gap-4">
-      <div
-        className={cn(
-          "mt-1 flex size-10 items-center justify-center rounded-full border",
-          active ? "border-primary bg-primary text-background" : "border-border bg-surface text-foreground"
-        )}
-      >
-        <span className="text-xs font-semibold">{phase.replace("Phase ", "")}</span>
-      </div>
-      <div className="pb-10">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-          {phase}
-        </p>
-        <h3 className="mt-2 text-lg font-semibold tracking-tight text-foreground">{title}</h3>
-        {description ? (
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 export function CTASection() {
   return (
     <section className="py-20 sm:py-24 lg:py-28">
@@ -351,17 +217,7 @@ export function CTASection() {
               Discover the opportunities that matter, track them intelligently, and apply with
               confidence.
             </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-4">
-              <Button asChild size="lg" className="bg-[#2563EB] text-white hover:bg-[#1D4ED8]">
-                <Link href="/get-started">Get Started</Link>
-              </Button>
-              <Button variant="outline" size="lg" asChild>
-                <Link href="#featured-opportunities">
-                  Explore Opportunities
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-            </div>
+            <LandingCta />
           </div>
         </div>
       </div>
@@ -395,29 +251,33 @@ export function LandingSections() {
       <SectionShell
         id="problem"
         eyebrow="The Problem"
-        title="The Discovery Problem"
-        subtitle="Students miss valuable opportunities because discovering hackathons across multiple platforms is difficult."
+        title="Why Students Miss Great Opportunities"
+        subtitle="Hackathons are spread across multiple platforms, making it difficult to discover opportunities, track deadlines, and choose the right one."
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <ProblemCard
-            title="Fragmented Platforms"
-            description="Hackathons are scattered across multiple ecosystems."
+            icon={<Globe2 className="size-5" />}
+            title="Scattered Platforms"
+            description="Hackathons are spread across multiple websites, making discovery slow and frustrating."
           />
           <ProblemCard
+            icon={<Clock3 className="size-5" />}
             title="Missed Deadlines"
-            description="Students discover opportunities after registrations close."
+            description="Students often discover great hackathons after registrations have already closed."
           />
           <ProblemCard
+            icon={<Search className="size-5" />}
             title="Information Overload"
-            description="Too many platforms, too much manual searching."
+            description="Too many platforms, too much information, and no easy way to find what matters."
           />
           <ProblemCard
+            icon={<Brain className="size-5" />}
             title="No Personalization"
-            description="Students receive generic opportunities instead of relevant ones."
+            description="Students receive generic listings instead of opportunities matched to their skills."
           />
         </div>
         <div className="mt-6 rounded-[1.75rem] border border-border bg-muted/40 px-6 py-5 text-sm font-medium text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.03)]">
-          Discovery is the bottleneck, not opportunity.
+          The problem isn&apos;t the lack of hackathons - it&apos;s discovering the right ones in time.
         </div>
       </SectionShell>
 
@@ -426,35 +286,26 @@ export function LandingSections() {
         eyebrow="Introducing HackRadar"
         title="Introducing HackRadar"
         subtitle="HackRadar solves fragmented discovery through one intelligent platform."
+        className="mt-4 sm:mt-6 lg:mt-8 xl:mt-10"
       >
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
             <div className="grid gap-4 sm:grid-cols-3">
-              <FeatureCard title="Unified Discovery" description="One place for every relevant opportunity." />
-              <FeatureCard title="Personalized Recommendations" description="Signals shaped by skills and interests." />
-              <FeatureCard title="Timely Alerts" description="Deadlines surfaced before they disappear." />
+              <FeatureCard
+                title="Smart Discovery"
+                description="Discover verified hackathons from multiple trusted platforms without endless searching."
+              />
+              <FeatureCard
+                title="AI-Powered Recommendations"
+                description="Receive personalized hackathon suggestions based on your skills, interests and experience level."
+              />
+              <FeatureCard
+                title="Smart Alerts & Tracking"
+                description="Stay informed with reminders for registrations, submissions, presentations and every important milestone."
+              />
             </div>
           </div>
-          <div className="rounded-[2rem] border border-border bg-surface p-8 shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
-            <div className="space-y-8">
-              {[
-                "Discover",
-                "Personalize",
-                "Track",
-                "Apply",
-              ].map((item, index) => (
-                <div key={item} className="flex items-center gap-4">
-                  <div className="flex size-10 items-center justify-center rounded-full border border-border bg-background text-sm font-semibold text-foreground">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-base font-medium text-foreground">{item}</p>
-                  </div>
-                  {index < 3 ? <ChevronDown className="size-5 shrink-0 text-muted-foreground" /> : null}
-                </div>
-              ))}
-            </div>
-          </div>
+          <HackRadarJourneyAccordion />
         </div>
       </SectionShell>
 
@@ -462,90 +313,18 @@ export function LandingSections() {
         id="how-it-works"
         eyebrow="How HackRadar Works"
         title="How HackRadar Works"
-        subtitle="Six reusable steps explain the product from source collection to portfolio growth."
+        subtitle="A simple workflow that helps you discover hackathons, track important deadlines and never miss an opportunity."
       >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <StepCard
-            step="1"
-            title="Discover Sources"
-            description="Collect hackathons from multiple platforms."
-          />
-          <StepCard
-            step="2"
-            title="Aggregate Data"
-            description="Normalize all opportunity data."
-          />
-          <StepCard
-            step="3"
-            title="Build Student Profile"
-            description="Skills, interests and preferences."
-          />
-          <StepCard
-            step="4"
-            title="AI Match Engine"
-            description="Recommend relevant opportunities."
-          />
-          <StepCard
-            step="5"
-            title="Track Deadlines"
-            description="Never miss registrations."
-          />
-          <StepCard
-            step="6"
-            title="Participate & Grow"
-            description="Apply and build your portfolio."
-          />
-        </div>
+        <HackRadarWorkflowGrid />
       </SectionShell>
 
       <SectionShell
         id="why-discovery-matters"
         eyebrow="Why Discovery Matters"
-        title="Why Discovery Matters"
+        title="Why Students Choose HackRadar"
+        subtitle="Stop searching across multiple websites. HackRadar helps you discover opportunities, track deadlines and stay updated-all from one platform."
       >
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-[2rem] border border-border bg-surface p-8 shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              Traditional student journey
-            </p>
-            <ul className="mt-6 space-y-4 text-sm text-muted-foreground">
-              <li className="rounded-2xl bg-background px-4 py-4">Multiple platforms</li>
-              <li className="rounded-2xl bg-background px-4 py-4">Manual searching</li>
-              <li className="rounded-2xl bg-background px-4 py-4">Missed deadlines</li>
-              <li className="rounded-2xl bg-background px-4 py-4">Generic recommendations</li>
-            </ul>
-          </div>
-          <div className="rounded-[2rem] border border-border bg-primary p-8 text-background shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-background/70">
-              HackRadar
-            </p>
-            <ul className="mt-6 space-y-4 text-sm">
-              <li className="rounded-2xl bg-background/10 px-4 py-4">One platform</li>
-              <li className="rounded-2xl bg-background/10 px-4 py-4">AI Discovery</li>
-              <li className="rounded-2xl bg-background/10 px-4 py-4">Smart Alerts</li>
-              <li className="rounded-2xl bg-background/10 px-4 py-4">Personalized Matching</li>
-            </ul>
-          </div>
-        </div>
-      </SectionShell>
-
-      <SectionShell
-        id="differentiators"
-        eyebrow="Why HackRadar Is Different"
-        title="Why HackRadar Is Different"
-      >
-        <div className="overflow-hidden rounded-[2rem] border border-border bg-surface shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
-          <div className="grid grid-cols-[1.6fr_repeat(4,minmax(0,1fr))] gap-4 border-b border-border px-6 py-4 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-            <div>Capability</div>
-            <div>HackRadar</div>
-            <div>Devfolio</div>
-            <div>Unstop</div>
-            <div>Hack2Skill</div>
-          </div>
-          {comparisonRows.map((row) => (
-            <ComparisonRow key={row.label} {...row} />
-          ))}
-        </div>
+        <WhyDiscoveryMattersPanel />
       </SectionShell>
 
       <SectionShell
@@ -561,36 +340,12 @@ export function LandingSections() {
         </div>
         <div className="mt-8 flex justify-center">
           <Button variant="outline" size="lg" asChild>
-            <Link href="/opportunities">View All Opportunities</Link>
+            <Link href="/hackathons">View All Opportunities</Link>
           </Button>
         </div>
       </SectionShell>
 
       <StatsSection />
-
-      <SectionShell
-        id="roadmap"
-        eyebrow="Roadmap"
-        title="Roadmap"
-        subtitle="HackRadar expands from discovery into the broader student opportunity stack."
-      >
-        <div className="rounded-[2rem] border border-border bg-surface p-8 shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
-          <div className="space-y-0">
-            {roadmapItems.map((item, index) => (
-              <div key={item.phase}>
-                <TimelineItem
-                  phase={item.phase}
-                  title={item.title}
-                  active={item.active}
-                />
-                {index < roadmapItems.length - 1 ? (
-                  <div className="ml-[1.3125rem] h-10 w-px bg-border" />
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </div>
-      </SectionShell>
 
       <CTASection />
 
@@ -617,3 +372,4 @@ export function LandingSections() {
     </>
   );
 }
+

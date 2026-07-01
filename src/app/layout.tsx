@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
-import { ThemeProvider } from "@/providers/theme-provider";
+import { AuthProvider, ThemeProvider } from "@/providers";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -17,6 +17,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "HackRadar",
   description: "Production-grade SaaS frontend foundation for HackRadar",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -32,7 +35,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          {children}
+          <AuthProvider>{children}</AuthProvider>
           <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>

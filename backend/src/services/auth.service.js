@@ -5,25 +5,39 @@ const ApiError = require("../utils/ApiError");
 const generateToken = require("../utils/generateToken");
 
 async function register(payload) {
+  const email = payload.email.toLowerCase().trim();
+
   const existing = await User.findOne({
-    $or: [{ email: payload.email.toLowerCase() }, { username: payload.username }],
+    $or: [
+      { email },
+      { username: payload.username },
+    ],
   });
 
   if (existing) {
-    throw new ApiError(409, "A user with this email or username already exists");
+    throw new ApiError(
+      409,
+      "A user with this email or username already exists"
+    );
   }
 
   const passwordHash = await bcrypt.hash(payload.password, 12);
-  const name = `${payload.firstName} ${payload.lastName}`.trim();
+
+  const fullName =
+    `${payload.firstName} ${payload.lastName}`.trim();
+
   const user = await User.create({
     firstName: payload.firstName,
     lastName: payload.lastName,
     username: payload.username,
-    email: payload.email,
-    phoneNumber: payload.phoneNumber,
+    email,
+    phoneNumber: payload.phoneNumber || "",
     passwordHash,
     authProvider: "email",
-    profile: { name, phoneNumber: payload.phoneNumber },
+
+    profile: {
+      name: fullName,
+    },
   });
 
   return {
@@ -33,14 +47,29 @@ async function register(payload) {
 }
 
 async function login(payload) {
-  const user = await User.findOne({ email: payload.email.toLowerCase() }).select("+passwordHash");
+  const email = payload.email.toLowerCase().trim();
+
+  const user = await User.findOne({
+    email,
+  }).select("+passwordHash");
+
   if (!user || !user.passwordHash) {
-    throw new ApiError(401, "Invalid email or password");
+    throw new ApiError(
+      401,
+      "Invalid email or password"
+    );
   }
 
-  const isValid = await bcrypt.compare(payload.password, user.passwordHash);
+  const isValid = await bcrypt.compare(
+    payload.password,
+    user.passwordHash
+  );
+
   if (!isValid) {
-    throw new ApiError(401, "Invalid email or password");
+    throw new ApiError(
+      401,
+      "Invalid email or password"
+    );
   }
 
   return {
@@ -51,7 +80,11 @@ async function login(payload) {
 
 function buildAuthPayload(user) {
   return {
-    user: typeof user.toSafeObject === "function" ? user.toSafeObject() : user,
+    user:
+      typeof user.toSafeObject === "function"
+        ? user.toSafeObject()
+        : user,
+
     token: generateToken(user),
   };
 }

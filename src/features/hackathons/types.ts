@@ -1,4 +1,4 @@
-import type { Hackathon } from "@/data/hackathons";
+import type { Hackathon } from "@/lib/api";
 
 export type { Hackathon };
 

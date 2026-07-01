@@ -1,5 +1,4 @@
-import type { Hackathon } from "@/data/hackathons";
-import type { UserProfile } from "@/features/profile/storage";
+import type { Hackathon, UserProfile } from "@/lib/api";
 
 export type RecommendationResult = {
   hackathon: Hackathon;
