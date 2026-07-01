@@ -5,23 +5,44 @@ const ApiError = require("../utils/ApiError");
 const hackathonService = require("./hackathon.service");
 const logger = require("../utils/logger");
 
+const REMINDERS = [
+  {
+    type: "7d",
+    offset: 7 * 24 * 60 * 60 * 1000,
+  },
+  {
+    type: "3d",
+    offset: 3 * 24 * 60 * 60 * 1000,
+  },
+  {
+    type: "1d",
+    offset: 24 * 60 * 60 * 1000,
+  },
+  {
+    type: "1h",
+    offset: 60 * 60 * 1000,
+  },
+];
+
 async function listAlerts(userId) {
   return Alert.find({ user: userId }).sort({
-    createdAt: -1,
+    alertTime: 1,
   });
 }
 
-function getAlertTime(hackathon, payload) {
-  // Demo Mode
+function getReminderSchedule(hackathon, payload) {
   if (payload.demoMode) {
-    const minutes = Number(payload.demoMinutes || 2);
-
-    return new Date(
-      Date.now() + minutes * 60 * 1000
-    );
+    return [
+      {
+        type: "1h",
+        remindAt: new Date(
+          Date.now() +
+            Number(payload.demoMinutes || 2) * 60000
+        ),
+      },
+    ];
   }
 
-  // Production Mode
   const deadline = new Date(
     hackathon.registrationDeadline ||
       hackathon.deadline
@@ -30,52 +51,44 @@ function getAlertTime(hackathon, payload) {
   if (Number.isNaN(deadline.getTime())) {
     throw new ApiError(
       422,
-      "Hackathon registration deadline is invalid"
+      "Invalid Hackathon Deadline"
     );
   }
 
-  // Default reminder = 24 Hours Before
-
-  return new Date(
-    deadline.getTime() - 24 * 60 * 60 * 1000
-  );
+  return REMINDERS.map((item) => ({
+    type: item.type,
+    remindAt: new Date(
+      deadline.getTime() - item.offset
+    ),
+  }));
 }
 
 async function sendAlertCreatedEmail(
   user,
-  alert,
-  alertTime
+  hackathonName,
+  count
 ) {
   if (!user?.email) return;
-
-  const fullName =
-    `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-    "User";
 
   try {
     await sendEmail({
       to: user.email,
-
       subject: "🎉 HackRadar Alert Created",
-
       html: `
-      <h2>Hello ${fullName},</h2>
+      <h2>Hello ${user.firstName || "Hacker"} 👋</h2>
 
-      <p>Your HackRadar alert has been created successfully.</p>
+      <p>Your reminder has been created successfully.</p>
 
-      <hr>
+      <h3>${hackathonName}</h3>
 
-      <h3>Alert Details</h3>
+      <p>Total reminders scheduled: <b>${count}</b></p>
 
-      <p><strong>Hackathon:</strong> ${alert.title}</p>
-
-      <p><strong>Reminder Time:</strong> ${alertTime}</p>
-
-      <p><strong>Channels:</strong> ${alert.channels.join(
-        ", "
-      )}</p>
-
-      <p><strong>Frequency:</strong> ${alert.frequency}</p>
+      <ul>
+        <li>7 Days Before</li>
+        <li>3 Days Before</li>
+        <li>1 Day Before</li>
+        <li>1 Hour Before</li>
+      </ul>
 
       <br>
 
@@ -86,72 +99,70 @@ async function sendAlertCreatedEmail(
     });
 
     logger.info(
-      `Confirmation email sent -> ${user.email}`
+      `Confirmation Email -> ${user.email}`
     );
   } catch (err) {
-    logger.warn(
-      "Confirmation email failed:",
-      err.message
-    );
+    logger.warn(err.message);
   }
 }
 
 async function createAlert(userId, payload) {
-  // Verify Hackathon
-
   const hackathon =
     await hackathonService.getHackathonById(
       payload.hackathonId
     );
 
-  // Generate Alert Time
+  const reminders =
+    getReminderSchedule(
+      hackathon,
+      payload
+    );
 
-  const alertTime = getAlertTime(
-    hackathon,
-    payload
-  );
+  const createdAlerts = [];
 
-  // Create Alert
+  for (const reminder of reminders) {
+    const alert = await Alert.create({
+      user: userId,
 
-  const alert = await Alert.create({
-    user: userId,
+      hackathonId: payload.hackathonId,
 
-    hackathonId: payload.hackathonId,
+      title:
+        payload.title ||
+        hackathon.name,
 
-    title:
-      payload.title ||
-      hackathon.title,
+      channels:
+        payload.channels || [
+          "email",
+          "telegram",
+        ],
 
-    channels:
-      payload.channels || [
-        "email",
-        "telegram",
-      ],
+      reminderType:
+        reminder.type,
 
-    frequency:
-      payload.frequency || "once",
+      frequency: "once",
 
-    enabled: true,
+      enabled: true,
 
-    alertTime,
+      alertTime:
+        reminder.remindAt,
 
-    settings:
-      payload.settings || {},
-  });
+      settings:
+        payload.settings || {},
+    });
 
-  // Send Confirmation
+    createdAlerts.push(alert);
+  }
 
-  const user = await User.findById(
-    userId
-  );
+  const user =
+    await User.findById(userId);
 
   await sendAlertCreatedEmail(
     user,
-    alert,
-    alertTime
+    hackathon.name,
+    createdAlerts.length
   );
 
-  return alert;
+  return createdAlerts;
 }
 
 async function updateAlert(
@@ -159,12 +170,6 @@ async function updateAlert(
   alertId,
   payload
 ) {
-  if (payload.hackathonId) {
-    await hackathonService.getHackathonById(
-      payload.hackathonId
-    );
-  }
-
   const alert =
     await Alert.findOneAndUpdate(
       {

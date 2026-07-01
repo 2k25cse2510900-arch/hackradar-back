@@ -501,15 +501,99 @@ const hackathons = [
   },
 ];
 
-function listHackathons() {
-  return hackathons;
+function filterHackathons(data, query) {
+  let result = [...data];
+
+  // Search
+  if (query.search) {
+    const search = query.search.toLowerCase();
+
+    result = result.filter(
+      (hackathon) =>
+        hackathon.name.toLowerCase().includes(search) ||
+        hackathon.organizer.toLowerCase().includes(search) ||
+        hackathon.domain.toLowerCase().includes(search)
+    );
+  }
+
+  // Domain
+  if (query.domain) {
+    result = result.filter(
+      (h) => h.domain.toLowerCase() === query.domain.toLowerCase()
+    );
+  }
+
+  // Mode
+  if (query.mode) {
+    result = result.filter(
+      (h) => h.mode.toLowerCase() === query.mode.toLowerCase()
+    );
+  }
+
+  // Difficulty
+  if (query.difficulty) {
+    result = result.filter(
+      (h) =>
+        h.difficulty.toLowerCase() === query.difficulty.toLowerCase()
+    );
+  }
+
+  // Status
+  if (query.status) {
+    result = result.filter(
+      (h) => h.status.toLowerCase() === query.status.toLowerCase()
+    );
+  }
+
+  // Registration
+  if (query.registration) {
+    result = result.filter(
+      (h) =>
+        h.registration.toLowerCase() ===
+        query.registration.toLowerCase()
+    );
+  }
+
+  // Sort
+  if (query.sort === "deadline") {
+    result.sort((a, b) => {
+      if (!a.registrationDeadline) return 1;
+      if (!b.registrationDeadline) return -1;
+
+      return (
+        new Date(a.registrationDeadline) -
+        new Date(b.registrationDeadline)
+      );
+    });
+  }
+
+  // Pagination
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+
+  const start = (page - 1) * limit;
+  const end = start + limit;
+
+  return {
+    total: result.length,
+    page,
+    limit,
+    totalPages: Math.ceil(result.length / limit),
+    hackathons: result.slice(start, end),
+  };
+}
+
+function listHackathons(query = {}) {
+  return filterHackathons(hackathons, query);
 }
 
 function getHackathonById(id) {
   const hackathon = hackathons.find((item) => item.id === id);
+
   if (!hackathon) {
     throw new ApiError(404, "Hackathon not found");
   }
+
   return hackathon;
 }
 

@@ -15,99 +15,78 @@ const {
 } = require("../templates/telegram.template");
 
 cron.schedule("* * * * *", async () => {
-  console.log("⏰ Checking alerts...");
-
   try {
-    const now = new Date();
-
     const alerts = await Alert.find({
       enabled: true,
-      alertTime: { $lte: now },
+      alertTime: {
+        $lte: new Date(),
+      },
     });
 
-    if (!alerts.length) {
-      return;
-    }
+    if (!alerts.length) return;
 
-    console.log(`✅ ${alerts.length} alert(s) found`);
+    console.log(`⏰ Running ${alerts.length} reminder(s)`);
 
     for (const alert of alerts) {
       try {
-        const user = await User.findById(alert.user);
+        const user = await User.findById(
+          alert.user
+        );
 
-        if (!user) {
-          continue;
-        }
+        if (!user) continue;
 
-        const canSendEmail =
-          Boolean(user.email) &&
-          alert.channels.includes("email");
-
-        const canSendTelegram =
-          Boolean(user.telegramVerified) &&
-          Boolean(user.telegramChatId) &&
-          alert.channels.includes("telegram");
-
-        // =========================
-        // EMAIL
-        // =========================
-
-        if (canSendEmail) {
+        if (
+          user.email &&
+          alert.channels.includes("email")
+        ) {
           await sendEmail({
             to: user.email,
-            subject: `⏰ Reminder: ${alert.title}`,
+            subject: `Reminder : ${alert.title}`,
             html: buildReminderEmail({
-              firstName: user.firstName || "Hacker",
+              firstName:
+                user.firstName || "Hacker",
               title: alert.title,
             }),
           });
 
-          console.log(
-            `📧 Email sent -> ${user.email}`
-          );
+          console.log(`📧 Email sent -> ${user.email}`);
         }
 
-        // =========================
-        // TELEGRAM
-        // =========================
-
-        if (canSendTelegram) {
+        if (
+          user.telegramVerified &&
+          user.telegramChatId &&
+          alert.channels.includes(
+            "telegram"
+          )
+        ) {
           await sendTelegramMessage(
             user.telegramChatId,
             buildTelegramReminder({
-              firstName: user.firstName || "Hacker",
+              firstName:
+                user.firstName || "Hacker",
               title: alert.title,
             })
           );
 
-          console.log(
-            `📲 Telegram sent -> ${user.telegramChatId}`
-          );
+          console.log(`📲 Telegram sent -> ${user.telegramChatId}`);
         }
 
-        // =========================
-        // MARK ALERT COMPLETE
-        // =========================
-
         alert.enabled = false;
-        alert.lastTriggeredAt = new Date();
+        alert.lastTriggeredAt =
+          new Date();
 
         await alert.save();
-
-        console.log(
-          `✅ Alert completed -> ${alert.title}`
-        );
       } catch (err) {
         console.error(
-          `❌ Failed Alert (${alert.title})`,
-          err.message
-        );
+  `❌ Alert "${alert.title}" failed`,
+  err.message
+);
       }
     }
   } catch (err) {
     console.error(
-      "❌ Cron Service Error:",
-      err.message
-    );
+  "❌ Cron Service Error:",
+  err.message
+);
   }
 });

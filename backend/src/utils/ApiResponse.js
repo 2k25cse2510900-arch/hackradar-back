@@ -1,9 +1,10 @@
 class ApiResponse {
   constructor(statusCode, data = null, message = "Success") {
-    this.success = statusCode < 400;
+    this.success = statusCode >= 200 && statusCode < 400;
     this.statusCode = statusCode;
     this.message = message;
     this.data = data;
+    this.timestamp = new Date().toISOString();
   }
 }
 

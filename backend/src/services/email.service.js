@@ -9,33 +9,41 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-/**
- * Send Email
- * @param {Object} options
- * @param {string} options.to
- * @param {string} options.subject
- * @param {string} options.html
- */
-const sendEmail = async ({ to, subject, html }) => {
-  try {
-    const info = await transporter.sendMail({
-  from: `"HackRadar Alerts" <${env.emailUser}>`,
+transporter.verify((err) => {
+  if (err) {
+    console.error("Email Transport Error:", err.message);
+  } else {
+    console.log("Email Transport Ready");
+  }
+});
+
+async function sendEmail({
   to,
   subject,
   html,
-});
+}) {
+  if (!to) return false;
 
-console.log("========== EMAIL INFO ==========");
-console.log(info);
-console.log("================================");
-    return info;
+  try {
+    await transporter.sendMail({
+      from: `"HackRadar Alerts" <${env.emailUser}>`,
+      to,
+      subject,
+      html,
+    });
+
+    console.log(`Email sent -> ${to}`);
+
+    return true;
   } catch (error) {
-    console.error("❌ Email sending failed");
-    console.error(error.message);
+    console.error(
+      "Email Error:",
+      error.message
+    );
 
-    throw error;
+    return false;
   }
-};
+}
 
 module.exports = {
   sendEmail,

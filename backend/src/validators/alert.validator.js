@@ -1,27 +1,75 @@
 const { body, param } = require("express-validator");
 
-const alertPayloadValidator = [
-  body("title").optional().isString().trim().notEmpty().withMessage("Title cannot be empty"),
-  body("hackathonId").optional().isString().trim(),
-  body("channels").optional().isArray().withMessage("Channels must be an array"),
-  body("channels.*").optional().isString().trim(),
-  body("frequency")
-  .optional()
-  .isIn(["once", "daily", "weekly", "monthly"])
-  .withMessage("Frequency must be once, daily, weekly, or monthly"),
-  body("enabled").optional().isBoolean().withMessage("Enabled must be a boolean"),
-  body("settings").optional().isObject().withMessage("Settings must be an object"),
-];
+const CHANNELS = ["email", "telegram"];
 
 const createAlertValidator = [
-  body("title").isString().trim().notEmpty().withMessage("Title is required"),
-  ...alertPayloadValidator,
+  body("hackathonId")
+    .isString()
+    .trim()
+    .notEmpty()
+    .withMessage("Hackathon ID is required"),
+
+  body("title")
+    .optional()
+    .isString()
+    .trim(),
+
+  body("channels")
+    .optional()
+    .isArray()
+    .withMessage("Channels must be an array"),
+
+  body("channels.*")
+    .optional()
+    .isIn(CHANNELS)
+    .withMessage("Invalid channel"),
+
+  body("frequency")
+    .optional()
+    .isIn(["once"])
+    .withMessage("Only 'once' reminders are supported"),
+
+  body("demoMode")
+    .optional()
+    .isBoolean(),
+
+  body("demoMinutes")
+    .optional()
+    .isInt({ min: 1, max: 60 })
+    .withMessage("Demo minutes must be between 1 and 60"),
 ];
 
-const updateAlertValidator = alertPayloadValidator;
+const updateAlertValidator = [
+  body("title")
+    .optional()
+    .isString()
+    .trim(),
+
+  body("enabled")
+    .optional()
+    .isBoolean(),
+
+  body("channels")
+    .optional()
+    .isArray(),
+
+  body("channels.*")
+    .optional()
+    .isIn(CHANNELS),
+
+  body("frequency")
+    .optional()
+    .isIn(["once"]),
+
+  body("settings")
+    .optional()
+    .isObject(),
+];
 
 const alertIdValidator = [
-  param("id").isMongoId().withMessage("Alert id must be a valid MongoDB ObjectId"),
+  param("id")
+    .isMongoId()
+    .withMessage("Invalid Alert ID"),
 ];
 
 module.exports = {

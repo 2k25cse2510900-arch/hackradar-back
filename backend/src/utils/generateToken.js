@@ -6,9 +6,13 @@ function generateToken(user) {
     {
       sub: user._id.toString(),
       email: user.email,
+      username: user.username || "",
+      authProvider: user.authProvider || "email",
     },
     jwtConfig.secret,
-    { expiresIn: jwtConfig.expiresIn }
+    {
+      expiresIn: jwtConfig.expiresIn,
+    }
   );
 }
 
