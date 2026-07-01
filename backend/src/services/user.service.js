@@ -1,7 +1,11 @@
 const crypto = require("crypto");
 
 async function getProfile(user) {
-  return user.profile;
+  const profile = user.profile?.toObject?.() || user.profile || {};
+  return {
+    ...profile,
+    phoneNumber: profile.phoneNumber || user.phoneNumber || "",
+  };
 }
 
 async function updateProfile(user, profile) {
@@ -9,6 +13,10 @@ async function updateProfile(user, profile) {
     ...user.profile?.toObject?.(),
     ...profile,
   };
+
+  if (typeof profile.phoneNumber !== "undefined") {
+    user.phoneNumber = profile.phoneNumber;
+  }
 
   await user.save();
 

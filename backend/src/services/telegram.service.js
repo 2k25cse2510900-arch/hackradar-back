@@ -1,8 +1,10 @@
 const axios = require("axios");
+const env = require("../config/env");
 
 const sendTelegramMessage = async (chatId, message) => {
   try {
-    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const token = env.telegramBotToken;
+    if (!token) return null;
 
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
 

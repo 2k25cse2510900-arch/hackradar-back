@@ -10,6 +10,7 @@ const registerValidator = [
     .matches(/^[a-zA-Z0-9._]+$/)
     .withMessage("Username can only contain letters, numbers, dots and underscores"),
   body("email").isEmail().withMessage("Enter a valid email address").normalizeEmail(),
+  body("phoneNumber").trim().notEmpty().withMessage("Phone number is required"),
   body("password")
     .isLength({ min: 8 })
     .withMessage("Password must be at least 8 characters")

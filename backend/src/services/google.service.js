@@ -14,7 +14,6 @@ async function findOrCreateGoogleUser(profile) {
   const existingByEmail = await User.findOne({ email });
   if (existingByEmail) {
     existingByEmail.googleId = profile.id;
-    existingByEmail.authProvider = existingByEmail.authProvider || "google";
     await existingByEmail.save();
     return existingByEmail;
   }

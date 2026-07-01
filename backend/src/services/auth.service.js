@@ -20,9 +20,10 @@ async function register(payload) {
     lastName: payload.lastName,
     username: payload.username,
     email: payload.email,
+    phoneNumber: payload.phoneNumber,
     passwordHash,
     authProvider: "email",
-    profile: { name },
+    profile: { name, phoneNumber: payload.phoneNumber },
   });
 
   return {

@@ -11,7 +11,7 @@ const hackathons = [
     difficulty: "Intermediate",
     registration: "Free",
     deadline: "20 Jul 2026",
-    registrationDeadline: "2026-07-02T10:12:00Z",
+    registrationDeadline: "2026-07-02T15:01:00Z",
     eventDates: "10-12 Aug 2026",
     location: "India",
     prizePool: "National recognition and cash awards",

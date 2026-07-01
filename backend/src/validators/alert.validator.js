@@ -7,8 +7,8 @@ const alertPayloadValidator = [
   body("channels.*").optional().isString().trim(),
   body("frequency")
   .optional()
-  .isIn(["daily", "weekly", "monthly"])
-  .withMessage("Frequency must be daily, weekly, or monthly"),
+  .isIn(["once", "daily", "weekly", "monthly"])
+  .withMessage("Frequency must be once, daily, weekly, or monthly"),
   body("enabled").optional().isBoolean().withMessage("Enabled must be a boolean"),
   body("settings").optional().isObject().withMessage("Settings must be an object"),
 ];

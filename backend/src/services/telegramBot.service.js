@@ -1,79 +1,71 @@
 const TelegramBot = require("node-telegram-bot-api");
 
+const env = require("../config/env");
 const User = require("../models/User");
+const logger = require("../utils/logger");
 
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-  polling: true,
-});
+let bot = null;
 
-bot.onText(/\/start/, async (msg) => {
-  bot.sendMessage(
-    msg.chat.id,
-    `
-👋 Welcome to HackRadar!
+if (!env.telegramBotToken) {
+  logger.warn("Telegram bot token is not configured; bot polling is disabled.");
+} else {
+  bot = new TelegramBot(env.telegramBotToken, {
+    polling: true,
+  });
 
-To connect Telegram with your account,
+  bot.on("polling_error", (error) => {
+    logger.warn("Telegram polling error:", error.response?.body || error.message);
+  });
 
-1️⃣ Login to HackRadar
+  bot.on("error", (error) => {
+    logger.warn("Telegram bot error:", error.message);
+  });
 
-2️⃣ Click "Connect Telegram"
+  bot.onText(/\/start/, async (msg) => {
+    await bot.sendMessage(
+      msg.chat.id,
+      `
+Welcome to HackRadar!
 
-3️⃣ Copy the generated code
+To connect Telegram with your account:
 
-4️⃣ Send here
+1. Login to HackRadar
+2. Click "Connect Telegram"
+3. Copy the generated code
+4. Send here:
 
 /verify YOUR_CODE
 `
-  );
-});
-
-bot.onText(/\/verify (.+)/, async (msg, match) => {
-  try {
-    const code = match[1].trim();
-
-    const user = await User.findOne({
-      telegramVerificationCode: code,
-    });
-
-    if (!user) {
-      return bot.sendMessage(
-        msg.chat.id,
-        "❌ Invalid verification code."
-      );
-    }
-
-    if (
-      !user.telegramVerificationExpires ||
-      user.telegramVerificationExpires < new Date()
-    ) {
-      return bot.sendMessage(
-        msg.chat.id,
-        "❌ Verification code expired."
-      );
-    }
-
-    user.telegramChatId = msg.chat.id.toString();
-
-    user.telegramVerified = true;
-
-    user.telegramVerificationCode = "";
-
-    user.telegramVerificationExpires = null;
-
-    await user.save();
-
-    bot.sendMessage(
-      msg.chat.id,
-      "✅ Telegram connected successfully with HackRadar!"
     );
-  } catch (err) {
-    console.log(err);
+  });
 
-    bot.sendMessage(
-      msg.chat.id,
-      "❌ Verification failed."
-    );
-  }
-});
+  bot.onText(/\/verify (.+)/, async (msg, match) => {
+    try {
+      const code = match[1].trim();
+      const user = await User.findOne({ telegramVerificationCode: code });
+
+      if (!user) {
+        await bot.sendMessage(msg.chat.id, "Invalid verification code.");
+        return;
+      }
+
+      if (!user.telegramVerificationExpires || user.telegramVerificationExpires < new Date()) {
+        await bot.sendMessage(msg.chat.id, "Verification code expired.");
+        return;
+      }
+
+      user.telegramChatId = msg.chat.id.toString();
+      user.telegramVerified = true;
+      user.telegramVerificationCode = "";
+      user.telegramVerificationExpires = null;
+
+      await user.save();
+      await bot.sendMessage(msg.chat.id, "Telegram connected successfully with HackRadar!");
+    } catch (error) {
+      logger.error("Telegram verification failed", error);
+      await bot.sendMessage(msg.chat.id, "Verification failed.").catch(() => null);
+    }
+  });
+}
 
 module.exports = bot;

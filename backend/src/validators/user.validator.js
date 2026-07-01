@@ -5,6 +5,7 @@ const profileValidator = [
   body("college").optional().isString().trim(),
   body("year").optional().isString().trim(),
   body("degree").optional().isString().trim(),
+  body("phoneNumber").optional().isString().trim(),
   body("domains").optional().isArray().withMessage("Domains must be an array"),
   body("domains.*").optional().isString().trim(),
   body("skills").optional().isArray().withMessage("Skills must be an array"),

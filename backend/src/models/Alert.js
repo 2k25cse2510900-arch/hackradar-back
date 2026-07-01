@@ -6,7 +6,7 @@ const alertSchema = new mongoose.Schema(
     hackathonId: { type: String, trim: true, default: "" },
     title: { type: String, required: true, trim: true },
     channels: { type: [String], default: [] },
-    frequency: { type: String, default: "daily", trim: true },
+    frequency: { type: String, default: "once", trim: true },
     enabled: { type: Boolean, default: true },
     lastTriggeredAt: {type: Date,default: null,},
     alertTime: { type: Date, required: true, index: true },

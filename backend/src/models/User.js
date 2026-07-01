@@ -16,6 +16,7 @@ const profileSchema = new mongoose.Schema(
     goals: { type: [String], default: ["Learning", "Build Portfolio"] },
     preferredMode: { type: String, default: "Online" },
     availability: { type: String, default: "Anytime" },
+    phoneNumber: { type: String, default: "", trim: true },
   },
   { _id: false }
 );
@@ -26,6 +27,7 @@ const userSchema = new mongoose.Schema(
     lastName: { type: String, trim: true, default: "" },
     username: { type: String, trim: true, unique: true, sparse: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    phoneNumber: { type: String, trim: true, default: "" },
     passwordHash: { type: String, select: false },
     googleId: { type: String, unique: true, sparse: true },
     authProvider: { type: String, enum: ["email", "google"], default: "email" },
